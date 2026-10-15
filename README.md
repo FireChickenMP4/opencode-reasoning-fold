@@ -2,8 +2,7 @@
 
 > OpenCode v2 plugin that detects **degenerated reasoning** (repetitive / looping
 > thinking) and folds those reasoning blocks out of the outgoing context, so bad
-> blocks stop being replayed every turn. Provider-agnostic (probes at runtime),
-> fail-open.
+> blocks stop being replayed every turn. Provider-agnostic, fail-open.
 
 > 按「思考是否退化」清理 reasoning 块；不剪工具输出、不替 OpenCode 做压缩。
 
@@ -11,7 +10,7 @@
 
 When a long context starts to degenerate, the model's *reasoning* falls into a
 loop (the same sentence, or the same pattern with different words, again and
-again). The turn often still ends looking fine — only the thinking is rotten.
+again). The turn often still looks fine — only the reasoning is broken.
 
 Worse, some providers send the earlier `reasoning` back on the next request, so a
 bad block stays in context and is **replayed** every turn.
@@ -24,31 +23,32 @@ own compaction.
 ## How it works
 
 - Registers `ctx.session.hook("context", ...)` — runs right before model
-  dispatch. Changes affect only the outgoing call, never persisted history.
-- The core (`lib/`) is a pair of pure, dependency-free functions:
+  dispatch. Changes apply to the outgoing call only; persisted history is not
+  modified.
+- The core (`lib/`) is a small, pure, dependency-free set of functions:
   - `detect(text, opts)` — is this block degenerate? (`repeat`, `rotation`)
   - `foldDegenerate(messages, opts)` — drop the degenerate `reasoning` parts.
 - **The unit of folding is the part, not the message.** A degenerate `reasoning`
   part is removed while the sibling `tool-call` part stays, so the
-  `tool_use <-> tool_result` pairing stays intact.
+  `tool-call <-> tool-result` pairing stays intact.
 - Only reasoning **detected as degenerate** is removed; normal historical
   reasoning is kept.
 - **Deterministic by design.** The hook re-reads persisted history every step and
   re-folds, producing byte-stable output (see Status for the cache question).
-- **Provider-agnostic.** It probes at runtime instead of keying off a provider
-  name: a message with no `reasoning` part (e.g. a non-thinking model variant)
-  leaves the plugin idle.
+- **Provider-agnostic.** It keys off the message shape, not a provider name: a
+  message with no `reasoning` part (e.g. a non-thinking model variant) leaves the
+  plugin idle.
 
 ## Install
 
 Copy the repo under `.opencode/plugins/reasoning-fold/` — plugins there are
-loaded automatically — or point `opencode.json(c)` at a checkout:
+loaded automatically — or add a checkout path to `opencode.json(c)`:
 
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
-    { "package": "./plugins/opencode-reasoning-fold", "options": { "dryRun": true } }
+    { "package": "/path/to/opencode-reasoning-fold", "options": { "dryRun": true } }
   ]
 }
 ```
@@ -76,8 +76,9 @@ Options are read from `ctx.options` during setup.
 | `minParts` | `25` | Minimum sentences in the window. |
 | `rotationGuard` | `true` | Set `false` to disable the rotation heuristic entirely (only `repeat` runs). |
 
-Every decision is written to `stderr` as counts only (no reasoning text). Set
-`debug` to also log a per-hook shape line and a truncated matched snippet.
+A fold or a signed-skip is written to `stderr` as counts only (no reasoning
+text); a run that folds nothing logs nothing. Set `debug` to also log a per-hook
+shape line and a truncated matched snippet.
 
 ## Safety
 
@@ -92,7 +93,7 @@ Every decision is written to `stderr` as counts only (no reasoning text). Set
   calibrated on real degenerate samples. Run it in dry-run first and read the
   log; arm it when the hits look right.
 - An assistant message that is *only* reasoning is left alone.
-- `tool-call` / `tool-result` parts are never touched.
+- `tool-call` / `tool-result` parts are not folded.
 - `logFile` should be an absolute path; a relative one is resolved against the
   process working directory.
 
@@ -102,21 +103,20 @@ Every decision is written to `stderr` as counts only (no reasoning text). Set
   Chinese corpus. `rotation` is calibrated on **English** text (its short-sentence
   gate is CJK-aware: each CJK character counts as a word). Neither has been
   re-calibrated on this project's traffic.
-- **The prompt cache.** Re-folding is byte-stable, but the cache effect ("fold
-  only the tail, the stable prefix still hits") is **not yet measured**.
+- **The prompt cache.** Re-folding is byte-stable, but whether the unchanged
+  prefix still hits the cache is **not yet measured**.
 - **Scope.** Only the agent loop (`context`) is covered. The `compaction`,
   `generate`, and `title` request kinds are not, so a degenerate block can still
   be sent when those run.
-- **Folding is deletion only.** The upstream project also *replaces* the step with
-  a short note ("do not repeat; give the conclusion"). This plugin only removes
-  the `reasoning` part and sends no hint, so whether deletion alone breaks the
-  loop is **untested**.
+- **No replacement hint.** The upstream project *replaces* the folded step with a
+  short note ("do not repeat; give the conclusion"). This plugin drops (or, in
+  `foldMode: "blank"`, empties) the `reasoning` part and sends no hint, so whether
+  that alone breaks the loop is **untested**.
 - Providers that sign thinking blocks (Anthropic-style) are **untested**; such
-  parts are automatically skipped, and `foldMode: "blank"` is there if you need
-  to keep the part. An assistant message made up of *only* reasoning parts is
-  not folded in either mode.
-- Verified working on `deepseek/deepseek-v4-pro` and
-  `ollama-cloud/deepseek-v4-pro` (reasoning parts present and safely removable).
+  parts are skipped in every mode. `foldMode: "blank"` keeps a non-signed
+  reasoning part while emptying its text.
+- Verified on `deepseek/deepseek-v4-pro` and `ollama-cloud/deepseek-v4-pro`
+  (reasoning parts present; folding completes without error).
 
 ## Development
 
