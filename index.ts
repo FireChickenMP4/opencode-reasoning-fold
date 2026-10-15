@@ -31,9 +31,15 @@ function makeLog(logFile?: string) {
   }
 }
 
-function describeHits(hits: Array<{ via: string; unit: string; count: number; share: number; chars: number }>): string {
+function describeHits(
+  hits: Array<{ via: string; unit: string; count: number; share: number; chars: number }>,
+  withUnit: boolean,
+): string {
   return hits
-    .map((h) => `${h.via}:${JSON.stringify(truncate(h.unit))}x${h.count}@${Math.round(h.share * 100)}%(${h.chars}ch)`)
+    .map((h) => {
+      const head = withUnit ? `${h.via}:${JSON.stringify(truncate(h.unit))}` : h.via
+      return `${head} count=${h.count} share=${Math.round(h.share * 100)}% chars=${h.chars}`
+    })
     .join(" ")
 }
 
@@ -80,7 +86,7 @@ export default {
           log(
             `session=${event?.sessionID ?? "?"} folded=${stats.folded} chars=${stats.foldedChars} ` +
               `skipped=${stats.skippedSigned} dryRun=${cfg.dryRun} mode=${cfg.foldMode}` +
-              (stats.hits.length ? ` :: ${describeHits(stats.hits)}` : ""),
+              (stats.hits.length ? ` :: ${describeHits(stats.hits, cfg.debug)}` : ""),
           )
           if (stats.folded === 0 || cfg.dryRun) return
 
