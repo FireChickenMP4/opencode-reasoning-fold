@@ -137,3 +137,36 @@ test("fold: malformed content does not throw", () => {
   ]
   assert.doesNotThrow(() => foldDegenerate(input, { dryRun: false }))
 })
+
+test("fold: skippedSigned counts only degenerate signed parts", () => {
+  const signedNormal = [
+    {
+      role: "assistant",
+      content: [
+        { type: "reasoning", text: "Let me read the file first.", providerMetadata: { anthropic: { signature: "s" } } },
+        { type: "text", text: "ok" },
+      ],
+    },
+  ]
+  assert.equal(foldDegenerate(signedNormal, { dryRun: false }).stats.skippedSigned, 0)
+})
+
+test("fold: a normal reasoning part next to a degenerate one is kept", () => {
+  const input = [
+    {
+      role: "assistant",
+      content: [
+        { type: "reasoning", text: "I will summarise the plan." },
+        { type: "reasoning", text: "好。".repeat(40) },
+      ],
+    },
+  ]
+  const { messages, stats } = foldDegenerate(input, { dryRun: false })
+  assert.equal(stats.folded, 1)
+  assert.deepEqual(messages[0].content.map((p) => p.type), ["reasoning"])
+  assert.equal(messages[0].content[0].text, "I will summarise the plan.")
+})
+
+test("fold: opts = null is tolerated", () => {
+  assert.doesNotThrow(() => foldDegenerate(fixture(), null))
+})

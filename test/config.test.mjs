@@ -18,10 +18,14 @@ test("overrides are applied", () => {
 })
 
 test("invalid values fall back to defaults", () => {
-  const c = parseConfig({ minRepeats: "nope", foldMode: "wat", enabled: 1 })
+  const c = parseConfig({ minRepeats: "nope", foldMode: "wat", enabled: 0 })
   assert.equal(c.minRepeats, DEFAULTS.minRepeats)
   assert.equal(c.foldMode, "remove")
-  assert.equal(c.enabled, true)
+  assert.equal(c.enabled, true) // 0 is not a boolean -> ignored
+})
+
+test("a boolean enabled is honoured", () => {
+  assert.equal(parseConfig({ enabled: false }).enabled, false)
 })
 
 test("non-object options are ignored", () => {

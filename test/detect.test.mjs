@@ -2,6 +2,14 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { detect, detectRepeat, detectRotation } from "../lib/detect.mjs"
 
+/** A window of Latin short sentences that rotate. */
+function englishChurn() {
+  const unit = ["Let me write it.", "Go.", "Now.", "OK.", "Writing.", "Here."]
+  let text = ""
+  for (let i = 0; i < 40; i++) text += unit[i % unit.length] + " "
+  return text
+}
+
 test("repeat: a single unit repeated past threshold is detected", () => {
   const hit = detect("好。".repeat(40))
   assert.ok(hit)
@@ -15,11 +23,25 @@ test("repeat: normal prose is not flagged", () => {
   assert.equal(detect(text), null)
 })
 
+test("repeat: a repeated line inside a code fence is not a loop", () => {
+  const text = "Let me check the log:\n\n```\n" + "out.push(item)\n".repeat(30) + "```\n\nI will fix it next."
+  assert.equal(detectRepeat(text), null)
+})
+
+test("repeat: below the count threshold is not enough", () => {
+  assert.equal(detectRepeat("好。".repeat(10)), null)
+})
+
+test("repeat: non-finite ratio thresholds fall back to defaults", () => {
+  const text = "好。".repeat(40)
+  const dflt = detectRepeat(text)
+  assert.ok(dflt) // the fallback must still produce a hit, not null
+  assert.deepEqual(detectRepeat(text, { minShare: Number.NaN }), dflt)
+  assert.deepEqual(detectRepeat(text, { minShare: Number.POSITIVE_INFINITY }), dflt)
+})
+
 test("rotation: english short-sentence churn is detected", () => {
-  const unit = ["Let me write it.", "Go.", "Now.", "OK.", "Writing.", "Here."]
-  let text = ""
-  for (let i = 0; i < 40; i++) text += unit[i % unit.length] + " "
-  const hit = detect(text)
+  const hit = detect(englishChurn())
   assert.ok(hit)
   assert.equal(hit.via, "rotation")
 })
@@ -28,22 +50,12 @@ test("rotation: too few parts is not enough", () => {
   assert.equal(detectRotation("Let me write it. Go. Now."), null)
 })
 
-test("repeat: below the count threshold is not enough", () => {
-  assert.equal(detectRepeat("好。".repeat(10)), null)
-})
-
-test("detect: non-finite ratio thresholds fall back to defaults", () => {
-  const text = "好。".repeat(40)
-  assert.deepEqual(detectRepeat(text, { minShare: Number.NaN }), detectRepeat(text))
-  assert.deepEqual(detectRepeat(text, { minShare: Number.POSITIVE_INFINITY }), detectRepeat(text))
-})
-
 test("rotation: non-finite ratio thresholds fall back to defaults", () => {
-  const unit = ["Let me write it.", "Go.", "Now.", "OK.", "Writing.", "Here."]
-  let text = ""
-  for (let i = 0; i < 40; i++) text += unit[i % unit.length] + " "
+  const text = englishChurn()
+  const dflt = detectRotation(text)
+  assert.ok(dflt)
   const forced = { shortShareMin: Number.NaN, topUnitShareMin: Number.POSITIVE_INFINITY }
-  assert.deepEqual(detectRotation(text, forced), detectRotation(text))
+  assert.deepEqual(detectRotation(text, forced), dflt)
 })
 
 test("rotation: CJK-aware word count kills the normal-Chinese false positive", () => {
@@ -68,11 +80,16 @@ test("rotation: genuinely short CJK fragments still rotate", () => {
   assert.equal(detect(text)?.via, "rotation")
 })
 
-test("rotationGuard: false disables rotation but leaves repeat working", () => {
-  const unit = ["Let me write it.", "Go.", "Now.", "OK.", "Writing.", "Here."]
+test("rotation: kana sentences count as words, so they are not trivially 'short'", () => {
+  const unit = ["これはテストです", "それを確認します", "設定を読み込みます", "結果を報告します", "次に進みます", "問題ありません"]
   let text = ""
-  for (let i = 0; i < 40; i++) text += unit[i % unit.length] + " "
-  assert.ok(detect(text))
-  assert.equal(detect(text, { rotationGuard: false }), null)
+  for (let i = 0; i < 7; i++) for (const u of unit) text += u + "。"
+
+  assert.equal(detectRotation(text), null)
+})
+
+test("rotationGuard: false disables rotation but leaves repeat working", () => {
+  assert.ok(detect(englishChurn()))
+  assert.equal(detect(englishChurn(), { rotationGuard: false }), null)
   assert.equal(detect("好。".repeat(40), { rotationGuard: false })?.via, "repeat")
 })

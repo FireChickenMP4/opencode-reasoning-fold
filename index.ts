@@ -9,21 +9,24 @@
 // opencode's own local plugins use) so the package needs no build step and no
 // dependency on @opencode/plugin at runtime.
 
-import { appendFileSync } from "node:fs"
+import { appendFile } from "node:fs"
 import { parseConfig } from "./lib/config.mjs"
-import { foldDegenerate } from "./lib/fold.mjs"
+import { foldDegenerate, isReasoningPart } from "./lib/fold.mjs"
+
+const PLUGIN_ID = "reasoning-fold"
 
 function makeLog(logFile?: string) {
   return (line: string): void => {
-    const msg = `[reasoning-fold] ${line}`
     try {
-      console.error(msg)
+      console.error(`[${PLUGIN_ID}] ${line}`)
     } catch {
       /* logging must never break a request */
     }
     if (logFile) {
+      // Async on purpose: this runs on the request path, so it must not block
+      // the event loop on a slow disk.
       try {
-        appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`, "utf8")
+        appendFile(logFile, `${new Date().toISOString()} ${line}\n`, "utf8", () => {})
       } catch {
         /* best effort */
       }
@@ -49,7 +52,7 @@ function truncate(s: string, n = 40): string {
 }
 
 export default {
-  id: "reasoning-fold",
+  id: PLUGIN_ID,
   async setup(ctx: any) {
     const cfg = parseConfig(ctx?.options ?? {})
     const log = makeLog(cfg.logFile)
@@ -66,13 +69,12 @@ export default {
               .map((m: any) => {
                 const content = Array.isArray(m?.content) ? m.content : []
                 const parts = content.map((p: any) => {
-                  const type = p?.type ?? "?"
-                  if (type === "reasoning" || type === "thinking") {
+                  if (isReasoningPart(p)) {
                     const pm = p?.providerMetadata
                     const keys = pm && typeof pm === "object" ? Object.keys(pm).join("+") : "-"
-                    return `${type}(pm:${keys})`
+                    return `${p.type}(pm:${keys})`
                   }
-                  return type
+                  return p?.type ?? "?"
                 })
                 return `${m?.role ?? "?"}[${parts.join(",")}]`
               })
@@ -101,7 +103,7 @@ export default {
       })
       log(`loaded (enabled=${cfg.enabled}, dryRun=${cfg.dryRun}, foldMode=${cfg.foldMode})`)
     } catch (e) {
-      console.error("[reasoning-fold] hook registration failed:", e)
+      log(`hook registration failed: ${e instanceof Error ? e.message : String(e)}`)
     }
   },
 }

@@ -1,5 +1,8 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
+import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import plugin from "../index.ts"
 
 function fakeCtx(options = {}) {
@@ -100,4 +103,32 @@ test("shell: disabled -> no change", async () => {
   const before = JSON.stringify(messages)
   ctx.hooks.context({ sessionID: "s", messages })
   assert.equal(JSON.stringify(messages), before)
+})
+
+test("shell: with logFile set, a fold appends a line", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "reasoning-fold-"))
+  try {
+    const logFile = join(dir, "log.txt")
+    const ctx = await setup({ dryRun: false, logFile })
+    await quiet(() => ctx.hooks.context({ sessionID: "s", messages: degenerateMessages() }))
+    await new Promise((resolve) => setTimeout(resolve, 100)) // appendFile is async
+    assert.match(readFileSync(logFile, "utf8"), /folded=1/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("shell: debug logs a shape line even with nothing degenerate", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "reasoning-fold-"))
+  try {
+    const logFile = join(dir, "log.txt")
+    const ctx = await setup({ dryRun: true, debug: true, logFile })
+    await quiet(() =>
+      ctx.hooks.context({ sessionID: "s", messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }] }),
+    )
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    assert.match(readFileSync(logFile, "utf8"), /hook session=s/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
