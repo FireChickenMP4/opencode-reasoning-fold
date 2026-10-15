@@ -127,9 +127,10 @@ node --test        # pure-function unit tests, no dependencies
 Layout: `lib/` is the host-neutral core; `index.ts` is the OpenCode shell. A
 future proxy (for other harnesses) would be a second shell over the same core.
 
-Runtime: `index.ts` is loaded by OpenCode v2 (Bun); it is not a Node entry point.
-The `lib/` core is dependency-free and runs on Node, which is what `node --test`
-exercises.
+Runtime: `index.ts` is loaded by OpenCode v2 (Bun); it is not a Node entry point,
+which is why the package's root export points at `index.ts`. The `lib/` core is
+dependency-free and runs on Node — that is what `node --test` exercises, together
+with `index.ts` itself via Node's TypeScript stripping.
 
 ## License
 
