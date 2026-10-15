@@ -37,20 +37,19 @@ OpenCode's own compaction.
 
 ## Install
 
+Copy the repo under `.opencode/plugins/reasoning-guard/` — plugins there are
+loaded automatically — or point `opencode.json(c)` at a checkout:
+
 ```jsonc
-// opencode.jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
-    {
-      "package": "opencode-reasoning-guard",
-      "options": { "dryRun": false }
-    }
+    { "package": "./plugins/opencode-reasoning-guard", "options": { "dryRun": true } }
   ]
 }
 ```
 
-Or keep a local copy under `.opencode/plugins/reasoning-guard/` (auto-loaded).
+`"package": "opencode-reasoning-guard"` (npm) works once the package is published.
 
 ## Configuration
 
@@ -61,7 +60,8 @@ Options are read from `ctx.options` during setup.
 | `enabled` | `true` | Master switch. |
 | `dryRun` | **`true`** | Report what *would* be folded, change nothing. Flip to `false` to arm. |
 | `foldMode` | `"remove"` | `"remove"` drops the reasoning part; `"blank"` empties its text. |
-| `logFile` | – | Optional path to append decisions to. |
+| `logFile` | – | Optional file to append decisions to (absolute path). |
+| `debug` | `false` | Also log every hook call (shape summary), not just folds. |
 | `tailChars` | `4000` | Only the tail window is inspected. |
 | `minRepeats` | `25` | Minimum repeats of one unit. |
 | `maxUnit` | `30` | Longest unit counted as "repeated". |
@@ -71,14 +71,18 @@ Options are read from `ctx.options` during setup.
 | `topUnitShareMin` | `0.50` | Share of the top-5 units needed (rotation). |
 | `minParts` | `25` | Minimum sentences in the window. |
 
+Every decision is also written to `stderr` (the matched snippet truncated to 40
+characters); `debug` adds a per-hook shape line.
+
 ## Safety
 
 - **Fail-open for in-process errors**: any exception while folding leaves the
   request untouched. It does *not* catch a provider that rejects an altered
   request (see the signed-thinking rule and the limitations below).
-- **Signed / redacted thinking is left alone.** A reasoning part whose
-  `providerMetadata` carries a signature/redaction marker is never folded,
-  because those providers reject tampered blocks.
+- **Signed / redacted thinking is skipped (heuristic).** A reasoning part whose
+  `providerMetadata` (or its own top-level keys) is named like a signature /
+  redaction marker is left alone, because those providers reject tampered
+  blocks. This is a key-name heuristic, not a signature check.
 - **`dryRun` defaults to on**, because the thresholds have not yet been
   calibrated on real degenerate samples. Run it in dry-run first and read the
   log; arm it when the hits look right.
@@ -100,7 +104,6 @@ Options are read from `ctx.options` during setup.
   never folded in either mode.
 - Verified working on `deepseek/deepseek-v4-pro` and
   `ollama-cloud/deepseek-v4-pro` (reasoning parts present and safely removable).
-- See [`docs/PROBE-REPORT.md`](docs/PROBE-REPORT.md) for the raw evidence.
 
 ## Development
 
@@ -113,4 +116,5 @@ future proxy (for other harnesses) would be a second shell over the same core.
 
 ## License
 
-MIT
+MIT. Parts of `lib/detect.mjs` are ported from another MIT project; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
