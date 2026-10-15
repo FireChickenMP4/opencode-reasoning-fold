@@ -84,9 +84,10 @@ export default {
           )
           if (stats.folded === 0 || cfg.dryRun) return
 
-          // Replace in place: the host owns this array reference. splice evaluates
-          // its arguments before mutating, so a throw cannot leave messages empty.
-          messages.splice(0, messages.length, ...folded)
+          // Replace in place: the host owns this array reference. A loop avoids
+          // spreading a huge array into a call (argument-count limit).
+          messages.length = 0
+          for (const m of folded) messages.push(m)
         } catch (e) {
           // fail-open: never let a fold error break the request pipeline.
           log(`hook error (fail-open): ${e instanceof Error ? e.message : String(e)}`)

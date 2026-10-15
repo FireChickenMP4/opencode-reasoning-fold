@@ -114,6 +114,10 @@ node --test        # pure-function unit tests, no dependencies
 Layout: `lib/` is the host-neutral core; `index.ts` is the OpenCode shell. A
 future proxy (for other harnesses) would be a second shell over the same core.
 
+Runtime: `index.ts` is loaded by OpenCode v2 (Bun); it is not a Node entry point.
+The `lib/` core is dependency-free and runs on Node, which is what `node --test`
+exercises.
+
 ## License
 
 MIT. Parts of `lib/detect.mjs` are ported from another MIT project; see

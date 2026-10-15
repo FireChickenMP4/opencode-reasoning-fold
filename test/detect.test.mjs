@@ -31,3 +31,17 @@ test("rotation: too few parts is not enough", () => {
 test("repeat: below the count threshold is not enough", () => {
   assert.equal(detectRepeat("好。".repeat(10)), null)
 })
+
+test("detect: non-finite ratio thresholds fall back to defaults", () => {
+  const text = "好。".repeat(40)
+  assert.deepEqual(detectRepeat(text, { minShare: Number.NaN }), detectRepeat(text))
+  assert.deepEqual(detectRepeat(text, { minShare: Number.POSITIVE_INFINITY }), detectRepeat(text))
+})
+
+test("rotation: non-finite ratio thresholds fall back to defaults", () => {
+  const unit = ["Let me write it.", "Go.", "Now.", "OK.", "Writing.", "Here."]
+  let text = ""
+  for (let i = 0; i < 40; i++) text += unit[i % unit.length] + " "
+  const forced = { shortShareMin: Number.NaN, topUnitShareMin: Number.POSITIVE_INFINITY }
+  assert.deepEqual(detectRotation(text, forced), detectRotation(text))
+})
