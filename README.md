@@ -67,7 +67,7 @@ Options are read from `ctx.options` during setup.
 | `logFile` | – | Optional file to append decisions to (absolute path). |
 | `debug` | `false` | Also log every hook call (shape summary), not just folds. |
 | `tailChars` | `4000` | Only the tail window is inspected. |
-| `minRepeats` | `25` | Minimum repeats of one unit. |
+| `minRepeats` | `25` | Minimum repeats of one unit; also the minimum sentence count for the `repeat` heuristic. |
 | `maxUnit` | `30` | Longest unit counted as "repeated". |
 | `minShare` | `0.20` | Repeats must cover this share of the window's sentences. |
 | `shortWordsMax` | `3` | A "short" sentence has at most this many words (rotation); a CJK character counts as a word, so for Chinese this is about 3 characters. |
