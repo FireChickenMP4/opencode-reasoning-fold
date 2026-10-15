@@ -26,7 +26,15 @@ function makeLog(logFile?: string) {
       // Async on purpose: this runs on the request path, so it must not block
       // the event loop on a slow disk.
       try {
-        appendFile(logFile, `${new Date().toISOString()} ${line}\n`, "utf8", () => {})
+        appendFile(logFile, `${new Date().toISOString()} ${line}\n`, "utf8", (err) => {
+          if (err) {
+            try {
+              console.error(`[${PLUGIN_ID}] logFile write failed: ${err.message}`)
+            } catch {
+              /* best effort */
+            }
+          }
+        })
       } catch {
         /* best effort */
       }

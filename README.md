@@ -77,8 +77,8 @@ Options are read from `ctx.options` during setup.
 | `rotationGuard` | `true` | Set `false` to disable the rotation heuristic entirely (only `repeat` runs). |
 
 A fold or a signed-skip is written to `stderr` as counts only (no reasoning
-text); a run that folds nothing logs nothing. Set `debug` to also log a per-hook
-shape line and a truncated matched snippet.
+text); a run with no folds and no signed skips logs nothing. Set `debug` to also
+log a per-hook shape line and a truncated matched snippet.
 
 ## Safety
 

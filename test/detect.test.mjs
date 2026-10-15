@@ -80,12 +80,16 @@ test("rotation: genuinely short CJK fragments still rotate", () => {
   assert.equal(detect(text)?.via, "rotation")
 })
 
-test("rotation: kana sentences count as words, so they are not trivially 'short'", () => {
-  const unit = ["これはテストです", "それを確認します", "設定を読み込みます", "結果を報告します", "次に進みます", "問題ありません"]
+test("rotation: short kana fragments rotate (kana counts as words)", () => {
+  // Without kana in the character class these have no words, the count map is
+  // empty, and the predicate returns null; with it they rotate.
+  const unit = ["はい", "ええ", "うん", "そう", "まあ", "だね"]
   let text = ""
-  for (let i = 0; i < 7; i++) for (const u of unit) text += u + "。"
+  for (let i = 0; i < 5; i++) for (const u of unit) text += u + "。"
 
-  assert.equal(detectRotation(text), null)
+  const hit = detectRotation(text)
+  assert.ok(hit)
+  assert.equal(hit.via, "rotation")
 })
 
 test("rotationGuard: false disables rotation but leaves repeat working", () => {

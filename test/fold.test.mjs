@@ -170,3 +170,10 @@ test("fold: a normal reasoning part next to a degenerate one is kept", () => {
 test("fold: opts = null is tolerated", () => {
   assert.doesNotThrow(() => foldDegenerate(fixture(), null))
 })
+
+test("fold: blank mode also leaves an only-reasoning message alone", () => {
+  const input = [{ role: "assistant", content: [{ type: "reasoning", text: "好。".repeat(40) }] }]
+  const { messages, stats } = foldDegenerate(input, { dryRun: false, foldMode: "blank" })
+  assert.equal(stats.folded, 0)
+  assert.equal(messages[0].content[0].text, "好。".repeat(40))
+})
