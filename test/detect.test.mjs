@@ -28,6 +28,13 @@ test("repeat: a repeated line inside a code fence is not a loop", () => {
   assert.equal(detectRepeat(text), null)
 })
 
+test("repeat: a fence opening before the tail window is still masked", () => {
+  // ~4900 chars of repeated code in one fence; the opening ``` is outside the
+  // last-4000-char window, so slicing first would leave the lines exposed.
+  const text = "```\n" + "out.push(item)\n".repeat(350) + "```"
+  assert.equal(detectRepeat(text), null)
+})
+
 test("repeat: below the count threshold is not enough", () => {
   assert.equal(detectRepeat("好。".repeat(10)), null)
 })
