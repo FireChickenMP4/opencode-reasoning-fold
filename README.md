@@ -2,7 +2,8 @@
 
 > OpenCode v2 plugin that detects **degenerated reasoning** (repetitive / looping
 > thinking) and folds those reasoning blocks out of the outgoing context, so bad
-> blocks stop being replayed every turn. Provider-aware, fail-open.
+> blocks stop being replayed every turn. Provider-agnostic (probes at runtime),
+> fail-open.
 
 > 按「思考是否退化」清理 reasoning 块；不剪工具输出、不替 OpenCode 做压缩。
 
@@ -13,7 +14,7 @@ loop (the same sentence, or the same pattern with different words, again and
 again). The turn often still ends looking fine — only the thinking is rotten.
 
 Worse, some providers send the earlier `reasoning` back on the next request, so a
-bad block stays in context and is **replayed and amplified** every turn.
+bad block stays in context and is **replayed** every turn.
 
 `opencode-reasoning-guard` watches the outgoing messages on the `context` hook,
 spots the degenerate reasoning blocks in the tail, and folds them out of what is
@@ -25,15 +26,16 @@ OpenCode's own compaction.
 - Registers `ctx.session.hook("context", ...)` — runs right before model
   dispatch. Changes affect only the outgoing call, never persisted history.
 - The core (`lib/`) is a pair of pure, dependency-free functions:
-  - `detect(text, opts)` — is this block degenerate? (`repeat` and `rotation`)
+  - `detect(text, opts)` — is this block degenerate? (`repeat`, `rotation`)
   - `foldDegenerate(messages, opts)` — drop the degenerate `reasoning` parts.
 - **The unit of folding is the part, not the message.** A degenerate `reasoning`
   part is removed while the sibling `tool-call` part stays, so
   `tool_use <-> tool_result` pairing is never broken.
 - **Deterministic by design.** The hook re-reads persisted history every step and
-  re-folds; because the result is byte-stable, the prompt cache does not flap.
-- **Provider-aware.** If a message carries no `reasoning` part (e.g. a
-  non-thinking model variant), the plugin is effectively idle.
+  re-folds, producing byte-stable output (see Status for the cache question).
+- **Provider-agnostic.** It probes at runtime instead of keying off a provider
+  name: a message with no `reasoning` part (e.g. a non-thinking model variant)
+  simply leaves the plugin idle.
 
 ## Install
 
@@ -70,9 +72,10 @@ Options are read from `ctx.options` during setup.
 | `shortShareMin` | `0.35` | Share of short sentences needed (rotation). |
 | `topUnitShareMin` | `0.50` | Share of the top-5 units needed (rotation). |
 | `minParts` | `25` | Minimum sentences in the window. |
+| `rotationGuard` | `true` | Set `false` to disable the rotation heuristic entirely (only `repeat` runs). |
 
-Every decision is also written to `stderr` (the matched snippet truncated to 40
-characters); `debug` adds a per-hook shape line.
+Every decision is written to `stderr` as counts only (no reasoning text). Set
+`debug` to also log a per-hook shape line and a truncated matched snippet.
 
 ## Safety
 
@@ -94,10 +97,19 @@ characters); `debug` adds a per-hook shape line.
 
 ## Status & limitations
 
-- Detection thresholds are the upstream defaults (calibrated on a Chinese
-  corpus) and are **not yet re-calibrated here**.
-- The cache benefit ("fold only the tail, the stable prefix still hits") is
-  **not yet measured**.
+- **Detection thresholds.** `repeat` uses the upstream defaults calibrated on a
+  Chinese corpus. `rotation` is calibrated on **English** text (its short-sentence
+  gate is CJK-aware: each CJK character counts as a word). Neither has been
+  re-calibrated on this project's traffic.
+- **The prompt cache.** Re-folding is byte-stable, but the cache effect ("fold
+  only the tail, the stable prefix still hits") is **not yet measured**.
+- **Scope.** Only the agent loop (`context`) is covered. The `compaction`,
+  `generate`, and `title` request kinds are not, so a degenerate block can still
+  be sent when those run.
+- **Folding is deletion only.** The upstream project also *replaces* the step with
+  a short note ("do not repeat; give the conclusion"). This plugin only removes
+  the `reasoning` part and sends no hint, so whether deletion alone breaks the
+  loop is **untested**.
 - Providers that sign thinking blocks (Anthropic-style) are **untested**; such
   parts are automatically skipped, and `foldMode: "blank"` is there if you need
   to keep the part. An assistant message made up of *only* reasoning parts is
