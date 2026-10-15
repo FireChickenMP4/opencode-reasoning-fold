@@ -22,6 +22,7 @@
     "index.ts",
     "lib",
     "README.md",
+    "README.zh.md",
     "LICENSE",
     "THIRD-PARTY-NOTICES.md"
   ],

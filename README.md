@@ -1,10 +1,10 @@
 # opencode-reasoning-fold
 
+**English** | [Chinese](README.zh.md)
+
 > OpenCode v2 plugin that detects **degenerated reasoning** (repetitive / looping
 > thinking) and folds those reasoning blocks out of the outgoing context, so bad
 > blocks stop being replayed every turn. Provider-agnostic, fail-open.
-
-> 按「思考是否退化」清理 reasoning 块；不剪工具输出、不替 OpenCode 做压缩。
 
 ## Why
 
