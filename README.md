@@ -68,7 +68,7 @@ Options are read from `ctx.options` during setup.
 | `minRepeats` | `25` | Minimum repeats of one unit. |
 | `maxUnit` | `30` | Longest unit counted as "repeated". |
 | `minShare` | `0.20` | Repeats must cover this share of the window's sentences. |
-| `shortWordsMax` | `3` | A "short" sentence has at most this many words (rotation). |
+| `shortWordsMax` | `3` | A "short" sentence has at most this many words (rotation); a CJK character counts as a word, so for Chinese this is about 3 characters. |
 | `shortShareMin` | `0.35` | Share of short sentences needed (rotation). |
 | `topUnitShareMin` | `0.50` | Share of the top-5 units needed (rotation). |
 | `minParts` | `25` | Minimum sentences in the window. |

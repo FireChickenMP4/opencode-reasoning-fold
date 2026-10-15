@@ -1,7 +1,7 @@
 {
   "name": "opencode-reasoning-guard",
   "version": "0.1.0",
-  "description": "OpenCode v2 plugin that detects degenerated reasoning (repetitive / looping thinking) and folds those reasoning blocks out of the outgoing context so they stop being replayed every turn. Provider-aware, fail-open.",
+  "description": "OpenCode v2 plugin that detects degenerated reasoning (repetitive / looping thinking) and folds those reasoning blocks out of the outgoing context so they stop being replayed every turn. Provider-agnostic (probes at runtime), fail-open.",
   "type": "module",
   "license": "MIT",
   "repository": {

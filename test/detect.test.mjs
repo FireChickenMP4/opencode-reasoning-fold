@@ -47,7 +47,7 @@ test("rotation: non-finite ratio thresholds fall back to defaults", () => {
 })
 
 test("rotation: CJK-aware word count kills the normal-Chinese false positive", () => {
-  // 8 Chinese sentences x4, each 3-6 chars: long enough to not be "short".
+  // 8 Chinese sentences x4; two are 3 chars (counted "short"), so shortShare = 8/32 = 0.25 < 0.35.
   const unit = ["先看配置文件", "再跑测试", "然后提交", "检查日志", "写文档", "改代码", "想想边界", "确认行为"]
   let text = ""
   for (let i = 0; i < 4; i++) for (const u of unit) text += u + "。"
@@ -66,4 +66,13 @@ test("rotation: genuinely short CJK fragments still rotate", () => {
   assert.ok(hit)
   assert.equal(hit.via, "rotation")
   assert.equal(detect(text)?.via, "rotation")
+})
+
+test("rotationGuard: false disables rotation but leaves repeat working", () => {
+  const unit = ["Let me write it.", "Go.", "Now.", "OK.", "Writing.", "Here."]
+  let text = ""
+  for (let i = 0; i < 40; i++) text += unit[i % unit.length] + " "
+  assert.ok(detect(text))
+  assert.equal(detect(text, { rotationGuard: false }), null)
+  assert.equal(detect("好。".repeat(40), { rotationGuard: false })?.via, "repeat")
 })
