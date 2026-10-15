@@ -79,9 +79,9 @@ Options are read from `ctx.options` during setup.
 With `logFile` set, every model request appends a
 `checked session=… msgs=… reasoning=… hits=…` line — so "ran but folded nothing"
 is visible. A fold (or a signed-skip) also writes `folded=… :: <hit> msg=<id>` to
-stderr: counts only, the matched snippet truncated to 40 characters. The message
-id lets you pull the block back out of `opencode.db` for a later A/B. Set `debug`
-to add a per-hook shape line.
+stderr and, when set, to `logFile`: counts only, the matched snippet truncated to
+40 characters. The message id lets you pull the block back out of `opencode.db`
+for a later A/B. Set `debug` to add a per-hook shape line.
 
 ## Safety
 
