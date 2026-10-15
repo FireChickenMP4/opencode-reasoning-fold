@@ -101,8 +101,9 @@ log a per-hook shape line and a truncated matched snippet.
 
 - **Detection thresholds.** `repeat` uses the upstream defaults calibrated on a
   Chinese corpus. `rotation` is calibrated on **English** text (its short-sentence
-  gate counts CJK-script characters — han, kana, hangul — as words). Neither has
-  been re-calibrated on this project's traffic.
+  gate counts CJK-script characters — han, kana, hangul — as words), and is skipped
+  when the window is line-structured (a list, table, or code block) rather than
+  prose. Neither has been re-calibrated on this project's traffic.
 - **The prompt cache.** Re-folding is byte-stable, but whether the unchanged
   prefix still hits the cache is **not yet measured**.
 - **Scope.** Only the agent loop (`context`) is covered. The `compaction`,

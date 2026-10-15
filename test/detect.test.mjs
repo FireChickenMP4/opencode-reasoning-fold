@@ -99,6 +99,12 @@ test("rotation: short kana fragments rotate (kana counts as words)", () => {
   assert.equal(hit.via, "rotation")
 })
 
+test("rotation: a line-structured block (labels per line) is not 'sentences rotating'", () => {
+  let text = ""
+  for (let i = 0; i < 30; i++) text += `Edit section ${i}:\nold:\nnew:\n`
+  assert.equal(detectRotation(text), null)
+})
+
 test("rotationGuard: false disables rotation but leaves repeat working", () => {
   assert.ok(detect(englishChurn()))
   assert.equal(detect(englishChurn(), { rotationGuard: false }), null)
