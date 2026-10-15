@@ -15,7 +15,7 @@ import { foldDegenerate } from "./lib/fold.mjs"
 
 function makeLog(logFile?: string) {
   return (line: string): void => {
-    const msg = `[reasoning-guard] ${line}`
+    const msg = `[reasoning-fold] ${line}`
     try {
       console.error(msg)
     } catch {
@@ -49,7 +49,7 @@ function truncate(s: string, n = 40): string {
 }
 
 export default {
-  id: "reasoning-guard",
+  id: "reasoning-fold",
   async setup(ctx: any) {
     const cfg = parseConfig(ctx?.options ?? {})
     const log = makeLog(cfg.logFile)
@@ -101,7 +101,7 @@ export default {
       })
       log(`loaded (enabled=${cfg.enabled}, dryRun=${cfg.dryRun}, foldMode=${cfg.foldMode})`)
     } catch (e) {
-      console.error("[reasoning-guard] hook registration failed:", e)
+      console.error("[reasoning-fold] hook registration failed:", e)
     }
   },
 }

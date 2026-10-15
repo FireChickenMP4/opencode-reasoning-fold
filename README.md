@@ -1,4 +1,4 @@
-# opencode-reasoning-guard
+# opencode-reasoning-fold
 
 > OpenCode v2 plugin that detects **degenerated reasoning** (repetitive / looping
 > thinking) and folds those reasoning blocks out of the outgoing context, so bad
@@ -16,7 +16,7 @@ again). The turn often still ends looking fine — only the thinking is rotten.
 Worse, some providers send the earlier `reasoning` back on the next request, so a
 bad block stays in context and is **replayed** every turn.
 
-`opencode-reasoning-guard` watches the outgoing messages on the `context` hook,
+`opencode-reasoning-fold` watches the outgoing messages on the `context` hook,
 spots the degenerate reasoning blocks in the tail, and folds them out of what is
 sent to the model. It does **not** touch tool output and does **not** replace
 OpenCode's own compaction.
@@ -39,19 +39,19 @@ OpenCode's own compaction.
 
 ## Install
 
-Copy the repo under `.opencode/plugins/reasoning-guard/` — plugins there are
+Copy the repo under `.opencode/plugins/reasoning-fold/` — plugins there are
 loaded automatically — or point `opencode.json(c)` at a checkout:
 
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
-    { "package": "./plugins/opencode-reasoning-guard", "options": { "dryRun": true } }
+    { "package": "./plugins/opencode-reasoning-fold", "options": { "dryRun": true } }
   ]
 }
 ```
 
-`"package": "opencode-reasoning-guard"` (npm) works once the package is published.
+`"package": "opencode-reasoning-fold"` (npm) works once the package is published.
 
 ## Configuration
 

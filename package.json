@@ -1,16 +1,16 @@
 {
-  "name": "opencode-reasoning-guard",
+  "name": "opencode-reasoning-fold",
   "version": "0.1.0",
   "description": "OpenCode v2 plugin that detects degenerated reasoning (repetitive / looping thinking) and folds those reasoning blocks out of the outgoing context so they stop being replayed every turn. Provider-agnostic (probes at runtime), fail-open.",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FireChickenMP4/opencode-reasoning-guard"
+    "url": "https://github.com/FireChickenMP4/opencode-reasoning-fold"
   },
-  "homepage": "https://github.com/FireChickenMP4/opencode-reasoning-guard#readme",
+  "homepage": "https://github.com/FireChickenMP4/opencode-reasoning-fold#readme",
   "bugs": {
-    "url": "https://github.com/FireChickenMP4/opencode-reasoning-guard/issues"
+    "url": "https://github.com/FireChickenMP4/opencode-reasoning-fold/issues"
   },
   "exports": {
     ".": "./index.ts",
