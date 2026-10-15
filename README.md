@@ -18,8 +18,8 @@ bad block stays in context and is **replayed** every turn.
 
 `opencode-reasoning-fold` watches the outgoing messages on the `context` hook,
 spots the degenerate reasoning blocks in the tail, and folds them out of what is
-sent to the model. It does **not** touch tool output and does **not** replace
-OpenCode's own compaction.
+sent to the model. It does not touch tool output and does not replace OpenCode's
+own compaction.
 
 ## How it works
 
@@ -29,13 +29,15 @@ OpenCode's own compaction.
   - `detect(text, opts)` — is this block degenerate? (`repeat`, `rotation`)
   - `foldDegenerate(messages, opts)` — drop the degenerate `reasoning` parts.
 - **The unit of folding is the part, not the message.** A degenerate `reasoning`
-  part is removed while the sibling `tool-call` part stays, so
-  `tool_use <-> tool_result` pairing is never broken.
+  part is removed while the sibling `tool-call` part stays, so the
+  `tool_use <-> tool_result` pairing stays intact.
+- Only reasoning **detected as degenerate** is removed; normal historical
+  reasoning is kept.
 - **Deterministic by design.** The hook re-reads persisted history every step and
   re-folds, producing byte-stable output (see Status for the cache question).
 - **Provider-agnostic.** It probes at runtime instead of keying off a provider
   name: a message with no `reasoning` part (e.g. a non-thinking model variant)
-  simply leaves the plugin idle.
+  leaves the plugin idle.
 
 ## Install
 
@@ -89,8 +91,7 @@ Every decision is written to `stderr` as counts only (no reasoning text). Set
 - **`dryRun` defaults to on**, because the thresholds have not yet been
   calibrated on real degenerate samples. Run it in dry-run first and read the
   log; arm it when the hits look right.
-- Never empties a message: if an assistant message is *only* reasoning, it is
-  left alone.
+- An assistant message that is *only* reasoning is left alone.
 - `tool-call` / `tool-result` parts are never touched.
 - `logFile` should be an absolute path; a relative one is resolved against the
   process working directory.
@@ -113,7 +114,7 @@ Every decision is written to `stderr` as counts only (no reasoning text). Set
 - Providers that sign thinking blocks (Anthropic-style) are **untested**; such
   parts are automatically skipped, and `foldMode: "blank"` is there if you need
   to keep the part. An assistant message made up of *only* reasoning parts is
-  never folded in either mode.
+  not folded in either mode.
 - Verified working on `deepseek/deepseek-v4-pro` and
   `ollama-cloud/deepseek-v4-pro` (reasoning parts present and safely removable).
 
