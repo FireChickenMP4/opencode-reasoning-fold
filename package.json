@@ -1,0 +1,40 @@
+{
+  "name": "opencode-reasoning-fold",
+  "version": "0.1.0",
+  "description": "OpenCode v2 plugin that detects degenerated reasoning (repetitive / looping thinking) and folds those reasoning blocks out of the outgoing context so they stop being replayed every turn. Provider-agnostic, fail-open.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FireChickenMP4/opencode-reasoning-fold"
+  },
+  "homepage": "https://github.com/FireChickenMP4/opencode-reasoning-fold#readme",
+  "bugs": {
+    "url": "https://github.com/FireChickenMP4/opencode-reasoning-fold/issues"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./core": "./lib/detect.mjs",
+    "./fold": "./lib/fold.mjs",
+    "./config": "./lib/config.mjs"
+  },
+  "files": [
+    "index.ts",
+    "lib",
+    "README.md",
+    "README.zh.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "reasoning",
+    "thinking",
+    "llm-agent",
+    "context-management"
+  ]
+}
