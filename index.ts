@@ -15,28 +15,39 @@ import { foldDegenerate, isReasoningPart } from "./lib/fold.mjs"
 
 const PLUGIN_ID = "reasoning-fold"
 
+/**
+ * Console + optional file logging that never throws: a logging failure must not
+ * break the request it describes. A failure is reported at most once -- after
+ * that there is nothing better to report through, and repeating it only adds
+ * noise.
+ */
 function makeLog(logFile?: string) {
+  let reportedFailure = false
+  const reportOnce = (err: unknown): void => {
+    if (reportedFailure) return
+    reportedFailure = true
+    try {
+      console.error(`[${PLUGIN_ID}] log failure: ${err instanceof Error ? err.message : String(err)}`)
+    } catch {
+      /* stderr itself is unusable */
+    }
+  }
+
   return (line: string): void => {
     try {
       console.error(`[${PLUGIN_ID}] ${line}`)
     } catch {
-      /* logging must never break a request */
+      /* stderr is unusable; reportOnce would only reach stderr again */
     }
     if (logFile) {
       // Async on purpose: this runs on the request path, so it must not block
       // the event loop on a slow disk.
       try {
         appendFile(logFile, `${new Date().toISOString()} ${line}\n`, "utf8", (err) => {
-          if (err) {
-            try {
-              console.error(`[${PLUGIN_ID}] logFile write failed: ${err.message}`)
-            } catch {
-              /* best effort */
-            }
-          }
+          if (err) reportOnce(err)
         })
-      } catch {
-        /* best effort */
+      } catch (e) {
+        reportOnce(e)
       }
     }
   }

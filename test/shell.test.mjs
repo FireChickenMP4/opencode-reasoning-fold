@@ -132,3 +132,21 @@ test("shell: debug logs a shape line even with nothing degenerate", async () => 
     rmSync(dir, { recursive: true, force: true })
   }
 })
+
+test("shell: a failing logFile is reported at most once", async () => {
+  const orig = console.error
+  const logged = []
+  try {
+    // A NUL byte makes appendFile throw synchronously, so this needs no timers:
+    // the assertion is deterministic.
+    const ctx = fakeCtx({ dryRun: false, logFile: "bad\u0000path" })
+    console.error = (...args) => {
+      logged.push(args.join(" "))
+    }
+    await plugin.setup(ctx)
+    for (let i = 0; i < 3; i++) ctx.hooks.context({ sessionID: "s", messages: degenerateMessages() })
+  } finally {
+    console.error = orig
+  }
+  assert.equal(logged.filter((line) => line.includes("log failure")).length, 1)
+})
