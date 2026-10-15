@@ -21,8 +21,9 @@ function fakeCtx(options = {}) {
 
 function degenerateMessages() {
   return [
-    { role: "user", content: [{ type: "text", text: "run it" }] },
+    { id: "u1", role: "user", content: [{ type: "text", text: "run it" }] },
     {
+      id: "a1",
       role: "assistant",
       content: [
         { type: "reasoning", text: "好。".repeat(40) },
@@ -112,7 +113,9 @@ test("shell: with logFile set, a fold appends a line", async () => {
     const ctx = await setup({ dryRun: false, logFile })
     await quiet(() => ctx.hooks.context({ sessionID: "s", messages: degenerateMessages() }))
     await new Promise((resolve) => setTimeout(resolve, 100)) // appendFile is async
-    assert.match(readFileSync(logFile, "utf8"), /folded=1/)
+    const written = readFileSync(logFile, "utf8")
+    assert.match(written, /folded=1/)
+    assert.match(written, /msg=a1/) // the folded message's id, for a later lookup
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -128,6 +131,24 @@ test("shell: debug logs a shape line even with nothing degenerate", async () => 
     )
     await new Promise((resolve) => setTimeout(resolve, 100))
     assert.match(readFileSync(logFile, "utf8"), /hook session=s/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("shell: every request is traced when logFile is set", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "reasoning-fold-"))
+  try {
+    const logFile = join(dir, "log.txt")
+    const ctx = await setup({ dryRun: false, logFile })
+    await quiet(() =>
+      ctx.hooks.context({ sessionID: "s", messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }] }),
+    )
+    await quiet(() => ctx.hooks.context({ sessionID: "s", messages: degenerateMessages() }))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const written = readFileSync(logFile, "utf8")
+    assert.match(written, /checked session=s msgs=1 reasoning=0 hits=0/)
+    assert.match(written, /checked session=s msgs=2 reasoning=1 hits=1/)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

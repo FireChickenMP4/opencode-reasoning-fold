@@ -33,34 +33,49 @@ function makeLog(logFile?: string) {
     }
   }
 
-  return (line: string): void => {
+  // File writes are async (so the request path never blocks on a slow disk) but
+  // serialised, so the log stays in order.
+  let queue: Promise<void> = Promise.resolve()
+  const writeFile = (line: string): void => {
+    if (!logFile) return
+    const text = `${new Date().toISOString()} ${line}\n`
+    queue = queue.then(
+      () =>
+        new Promise<void>((resolve) => {
+          try {
+            appendFile(logFile, text, "utf8", (err) => {
+              if (err) reportOnce(err)
+              resolve()
+            })
+          } catch (e) {
+            reportOnce(e)
+            resolve()
+          }
+        }),
+    )
+  }
+
+  const log = (line: string): void => {
     try {
       console.error(`[${PLUGIN_ID}] ${line}`)
     } catch {
       /* stderr is unusable; reportOnce would only reach stderr again */
     }
-    if (logFile) {
-      // Async on purpose: this runs on the request path, so it must not block
-      // the event loop on a slow disk.
-      try {
-        appendFile(logFile, `${new Date().toISOString()} ${line}\n`, "utf8", (err) => {
-          if (err) reportOnce(err)
-        })
-      } catch (e) {
-        reportOnce(e)
-      }
-    }
+    writeFile(line)
   }
+
+  // The per-request trace goes to the file only, so stderr stays quiet.
+  return { log, trace: writeFile }
 }
 
 function describeHits(
-  hits: Array<{ via: string; unit: string; count: number; share: number; chars: number }>,
+  hits: Array<{ via: string; unit: string; count: number; share: number; chars: number; messageID?: string }>,
   withUnit: boolean,
 ): string {
   return hits
     .map((h) => {
       const head = withUnit ? `${h.via}:${JSON.stringify(truncate(h.unit))}` : h.via
-      return `${head} count=${h.count} share=${Math.round(h.share * 100)}% chars=${h.chars}`
+      return `${head} count=${h.count} share=${Math.round(h.share * 100)}% chars=${h.chars} msg=${h.messageID ?? "?"}`
     })
     .join(" ")
 }
@@ -74,7 +89,7 @@ export default {
   id: PLUGIN_ID,
   async setup(ctx: any) {
     const cfg = parseConfig(ctx?.options ?? {})
-    const log = makeLog(cfg.logFile)
+    const { log, trace } = makeLog(cfg.logFile)
 
     try {
       await ctx.session.hook("context", (event: any) => {
@@ -102,7 +117,14 @@ export default {
           }
 
           const { messages: folded, stats } = foldDegenerate(messages, cfg)
-          if (stats.folded === 0 && stats.skippedSigned === 0) return
+          const hits = stats.folded + stats.skippedSigned
+          const reasoning = messages.reduce(
+            (n: number, m: any) => n + (Array.isArray(m?.content) ? m.content.filter(isReasoningPart).length : 0),
+            0,
+          )
+          // Trace every request, so "it ran and folded nothing" is visible.
+          trace(`checked session=${event?.sessionID ?? "?"} msgs=${messages.length} reasoning=${reasoning} hits=${hits}`)
+          if (hits === 0) return
 
           log(
             `session=${event?.sessionID ?? "?"} folded=${stats.folded} chars=${stats.foldedChars} ` +
